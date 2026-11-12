@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AmCraft Buddy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Chettan+2:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#eef3ef;--surface:#fff;--fg:#17241d;--muted:#5d6f64;--line:#d5e0d8;
+  --accent:#1f6b4a;--accent-fg:#fff;--bot:#fff;--bot-fg:#17241d;--warm:#e8a33a;--danger:#b3412f;--scrim:rgba(10,20,15,.45);
+  --display:"Baloo Chettan 2","Manrope",system-ui,sans-serif;--body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1713;--surface:#16211b;--fg:#e4efe8;--muted:#93a89b;--line:#26352c;--bot:#1c2a22;--bot-fg:#e4efe8;--warm:#f0b456;--danger:#e07a66;--scrim:rgba(0,0,0,.6);color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.4 var(--body)}
+img{max-width:100%}
+button{font-family:var(--body)}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--warm);outline-offset:2px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{height:100%;display:flex;flex-direction:column;max-width:780px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;padding-block:10px;border-bottom:1px solid var(--line);background:var(--bg)}
+.av{width:42px;height:42px;border-radius:50%;background:var(--accent);color:var(--accent-fg);flex:none;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:19px;overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover}
+.av.sm{width:28px;height:28px;font-size:13px}
+.who{flex:1;min-width:0}
+.who h1{margin:0;font-family:var(--display);font-weight:700;font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who p{margin:0;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who p.on::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
+.ib{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;display:grid;place-items:center;flex:none}
+.ib[aria-pressed=false]{color:var(--muted)}.ib[aria-pressed=false] .wave{opacity:0}
+svg{width:20px;height:20px}
+#thread{flex:1;overflow-y:auto;padding-block:16px;display:flex;flex-direction:column;gap:10px;background-color:var(--bg)}
+.chip-t{align-self:center;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:3px 10px}
+.msg{max-width:min(80%,520px);display:flex;gap:7px;align-items:flex-end;min-width:0}
+.msg .col{display:flex;flex-direction:column;gap:3px;min-width:0}
+.msg.me{align-self:flex-end}.msg.me .col{align-items:flex-end}
+.bubble{padding:9px 13px;border-radius:18px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.06)}
+.me .bubble{background:var(--accent);color:var(--accent-fg);border-bottom-right-radius:6px}
+.bot .bubble{background:var(--bot);color:var(--bot-fg);border:1px solid var(--line);border-bottom-left-radius:6px}
+.voice{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;margin-bottom:4px}
+.bars{display:flex;gap:2px;align-items:center;height:16px}
+.bars i{display:block;width:3px;border-radius:2px;background:currentColor;opacity:.75}
+.meta{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted);padding:0 4px;font-variant-numeric:tabular-nums}
+.play{border:none;background:none;color:var(--accent);font:700 11.5px var(--body);cursor:pointer;padding:2px 4px}
+.typing .bubble{display:flex;gap:4px;padding:13px 15px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:b 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+.note{align-self:center;max-width:90%;text-align:center;font-size:12.5px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:8px 12px}
+.note.err{color:var(--danger)}
+footer{border-top:1px solid var(--line);background:var(--bg);padding-block:10px calc(10px + env(safe-area-inset-bottom,0px))}
+#live{font-size:13px;color:var(--muted);padding:0 4px 6px;font-style:italic}#live:empty{display:none}
+#form{display:flex;gap:8px;align-items:flex-end}
+textarea,input[type=text],input[type=password]{border:1px solid var(--line);background:var(--surface);color:var(--fg);font:15px/1.4 var(--body)}
+#box{flex:1;min-width:0;resize:none;max-height:140px;border-radius:22px;padding:11px 16px}
+.mic,.send{width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;display:grid;place-items:center;flex:none}
+.mic{background:var(--surface);color:var(--accent);border:1px solid var(--line)}
+.mic.rec{background:var(--danger);color:#fff;border-color:var(--danger);animation:p 1.4s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--danger) 45%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+.send{background:var(--accent);color:var(--accent-fg)}.send:disabled{opacity:.45;cursor:default}
+.sr{position:absolute;left:-9999px}
+.screen{position:fixed;inset:0;background:var(--bg);z-index:30;overflow-y:auto;display:flex}
+.wrap{margin:auto;width:min(100%,420px);padding-block:24px;display:flex;flex-direction:column;gap:16px;text-align:center}
+.brand{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.04em;color:var(--accent)}
+.wrap h2{margin:0;font-family:var(--display);font-size:28px;line-height:1.15}
+.wrap p.lead{margin:0;color:var(--muted);line-height:1.5}
+.field{display:flex;flex-direction:column;gap:6px;text-align:left}
+.field label{font-size:12.5px;font-weight:700;color:var(--muted)}
+.field input{border-radius:12px;padding:11px 14px}
+.picks{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pick{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:18px;padding:18px 10px;cursor:pointer;font-weight:700;font-size:15px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.pick b{font-family:var(--display);font-size:24px;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);overflow:hidden}
+.pick b img{width:100%;height:100%;object-fit:cover}
+.pick small{color:var(--muted);font-weight:500;font-size:12.5px}
+.pick:hover{border-color:var(--accent)}
+.pick.special{grid-column:1/-1;flex-direction:row;justify-content:flex-start;gap:14px;padding:14px 16px;text-align:left;background:linear-gradient(135deg,color-mix(in srgb,var(--warm) 22%,var(--surface)),var(--surface));border-color:color-mix(in srgb,var(--warm) 55%,var(--line))}
+.pick.special b{background:var(--warm)}
+.pick.special span{display:flex;flex-direction:column;gap:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.row{display:flex;gap:10px}
+.btn{flex:1;border:none;border-radius:14px;padding:13px 16px;font-weight:700;font-size:15px;cursor:pointer;background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+.small{font-size:12px;color:var(--muted)}
+#scrim{position:fixed;inset:0;background:var(--scrim);z-index:40}
+#panel{position:fixed;top:0;right:0;bottom:0;width:min(100%,380px);background:var(--bg);z-index:41;border-left:1px solid var(--line);display:flex;flex-direction:column}
+#panel .ph{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+#panel .ph h3{margin:0;font-family:var(--display);font-size:20px}
+#panel .pb{overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:22px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.sw{display:flex;flex-wrap:wrap;gap:10px}
+.swatch{width:34px;height:34px;border-radius:50%;border:2px solid var(--bg);box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.swatch[aria-pressed=true]{box-shadow:0 0 0 2px var(--fg)}
+.linkb{border:none;background:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;text-align:left;padding:4px 0}
+.danger{color:var(--danger)}
+.about{font-size:12.5px;color:var(--muted);line-height:1.5}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="gut">
+    <div class="av" id="hAv" aria-hidden="true"></div>
+    <div class="who"><h1 id="hName">AmCraft Buddy</h1><p id="status" class="on">online</p></div>
+    <button class="ib" id="voiceToggle" aria-pressed="true" title="Voice reply on/off" aria-label="Voice reply">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+    </button>
+    <button class="ib" id="openSettings" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+  <main id="thread" class="gut" aria-live="polite"></main>
+  <footer class="gut">
+    <div id="live"></div>
+    <form id="form">
+      <button class="mic" id="mic" type="button" aria-label="Voice message" title="Voice message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
+      <label for="box" class="sr">Message</label>
+      <textarea id="box" rows="1" placeholder="Enthelum parayu…"></textarea>
+      <button class="send" id="send" type="submit" aria-label="Ayakkuka" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+  </footer>
+</div>
+
+<!-- login -->
+<div id="login" class="screen gut" hidden><div class="wrap">
+  <div class="brand">AmCraft Buddy</div>
+  <h2>Login cheyyu</h2>
+  <p class="lead">Email + password vechu login. Aadyam puthiya password set cheyyuka; pinneyum same email + same password adichal mathram login aakum. Same login phone-ilum laptop-ilum chat continue cheyyum.</p>
+  <div class="field"><label for="lemail">Email</label><input type="text" id="lemail" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+  <div class="field"><label for="lpass">Password</label><input type="password" id="lpass" autocomplete="current-password"></div>
+  <div class="field" id="codeField" hidden><label for="lcode">Access code</label><input type="password" id="lcode" autocomplete="off"></div>
+  <button class="btn" id="loginBtn">Aakatte</button>
+  <p class="small" id="loginErr" style="color:var(--danger)" hidden></p>
+</div></div>
+
+<!-- setup -->
+<div id="setup" class="screen gut" hidden>
+  <div class="wrap" id="step1">
+    <div class="brand">AmCraft Buddy</div>
+    <h2>Ninte buddy-ye choose cheyyu</h2>
+    <div class="picks">
+      <button class="pick" id="pickBoy"><b>♂</b>Njan boy<small>Girl buddy reply cheyyum</small></button>
+      <button class="pick" id="pickGirl"><b>♀</b>Njan girl<small>Boy buddy reply cheyyum</small></button>
+      <button class="pick special" id="pickGoku"><b><img src="/goku.jpg" alt=""></b><span>Goku<small>Special character · creator</small></span></button>
+    </div>
+  </div>
+  <div class="wrap" id="step2" hidden>
+    <div class="brand">AmCraft Buddy</div>
+    <h2 id="s2title">Ninte buddy</h2>
+    <div class="av" id="s2av" style="width:96px;height:96px;font-size:40px;align-self:center"></div>
+    <div class="field" id="nameField">
+      <label for="charName">Buddy-yude peru</label>
+      <input type="text" id="charName" maxlength="24" autocomplete="off">
+      <div class="chips" id="nameChips"></div>
+    </div>
+    <div class="field">
+      <label for="userName">Buddy ninne enthu vilikkanam? (optional)</label>
+      <input type="text" id="userName" maxlength="24" autocomplete="off">
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="back" style="flex:0 0 auto">Back</button>
+      <button class="btn" id="start">Chat thudangaam</button>
+    </div>
+  </div>
+</div>
+
+<!-- settings -->
+<div id="scrim" hidden></div>
+<aside id="panel" hidden aria-label="Settings">
+  <div class="ph"><h3>Settings</h3>
+    <button class="ib" id="closeSettings" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="pb">
+    <section class="sec"><h4>Buddy</h4>
+      <div class="row"><button class="btn ghost" id="changeType" style="flex:1">Buddy maattuka</button></div>
+    </section>
+    <section class="sec"><h4>Color</h4><div class="sw" id="swatches"></div></section>
+    <section class="sec"><h4>Chat</h4><button class="linkb danger" id="clearBtn">Ee chat clear cheyyuka</button></section>
+    <section class="sec"><h4>Account</h4>
+      <p class="small" id="accName"></p>
+      <button class="linkb" id="logoutBtn">Logout</button>
+    </section>
+    <p class="about">AmCraft Buddy · built by Gokul Prakash</p>
+  </div>
+</aside>
+
+<script>
+const $=s=>document.querySelector(s);
+const thread=$("#thread"),box=$("#box"),sendBtn=$("#send"),micBtn=$("#mic"),live=$("#live");
+const ACC=["#1f6b4a","#0f7c86","#2457c5","#7a3fc4","#c2367a","#d0542a","#b8860b","#37474f"];
+const NAMES={girl:["Ammu","Meera","Diya","Anu","Nila"],boy:["Kannan","Arjun","Appu","Rahul","Adi"]};
+const L=(k,d)=>{try{const v=localStorage.getItem("amb-"+k);return v==null?d:JSON.parse(v)}catch(e){return d}};
+const S=(k,v)=>{try{localStorage.setItem("amb-"+k,JSON.stringify(v))}catch(e){}};
+
+let token=L("token",null), username=L("username",""), CFG=L("cfg",{type:null,charName:"",userName:"",accent:ACC[0]});
+let serverCfg={voice:false,voices:{}}, msgs=[], busy=false, voiceOn=L("voiceOn",true), curAudio=null;
+
+function persona(){
+  if(CFG.type==="goku") return {name:"Goku",img:"/goku.jpg",voiceKey:"goku"};
+  if(CFG.type==="girl") return {name:CFG.charName||"Ammu",img:null,voiceKey:"girl"};
+  return {name:CFG.charName||"Kannan",img:null,voiceKey:"boy"};
+}
+function avHTML(p){return p.img?`<img src="${p.img}" alt="">`:esc((p.name||"?").slice(0,1).toUpperCase());}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function lum(h){const n=parseInt(h.slice(1),16);const c=[n>>16&255,n>>8&255,n&255].map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*c[0]+.7152*c[1]+.0722*c[2];}
+function applyTheme(){const r=document.documentElement.style;r.setProperty("--accent",CFG.accent);r.setProperty("--accent-fg",lum(CFG.accent)>.45?"#111":"#fff");}
+
+async function api(path,body){
+  const r=await fetch(path,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token,...body})});
+  if(r.status===401){doLogout();throw new Error("auth");}
+  return r;
+}
+
+/* ---- rendering ---- */
+const fmt=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+function bars(seed){let h="",x=seed||7;for(let i=0;i<18;i++){x=(x*9301+49297)%233280;h+=`<i style="height:${4+Math.round(x/233280*12)}px"></i>`;}return `<span class="bars" aria-hidden="true">${h}</span>`;}
+function bubble(m){
+  const mine=m.role==="user";
+  const w=document.createElement("div");w.className="msg "+(mine?"me":"bot");
+  if(!mine){const a=document.createElement("div");a.className="av sm";a.innerHTML=avHTML(persona());w.append(a);}
+  const col=document.createElement("div");col.className="col";
+  const b=document.createElement("div");b.className="bubble";
+  if(m.voice){const v=document.createElement("div");v.className="voice";v.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:14px;height:14px"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/></svg>${bars((m.t||0)%1000)}<span>Voice message</span>`;b.append(v);}
+  const txt=document.createElement("span");txt.textContent=m.content;b.append(txt);
+  const meta=document.createElement("div");meta.className="meta";const tm=document.createElement("span");tm.textContent=fmt(m.t||Date.now());meta.append(tm);
+  if(!mine && serverCfg.voice){const pl=document.createElement("button");pl.className="play";pl.type="button";pl.textContent="▶ Kelkkuka";pl.onclick=()=>speak(m.content);meta.append(pl);}
+  col.append(b,meta);w.append(col);return {wrap:w,txt};
+}
+function note(t,err){const n=document.createElement("div");n.className="note"+(err?" err":"");n.textContent=t;thread.append(n);scrl();return n;}
+function scrl(){thread.scrollTop=thread.scrollHeight;}
+function renderAll(){
+  thread.innerHTML="";const d=document.createElement("div");d.className="chip-t";d.textContent="Chat";thread.append(d);
+  if(!msgs.length) note(`Hi${CFG.userName?" "+CFG.userName:""}! Njan ${persona().name}. Type cheyyaam, allenkil mic amarthi voice message ayakkaam.`);
+  msgs.forEach(m=>thread.append(bubble(m).wrap));scrl();
+}
+function renderHeader(){const p=persona();$("#hAv").innerHTML=avHTML(p);$("#hName").textContent=p.name;setStatus("online",true);}
+function setStatus(t,on){const s=$("#status");s.textContent=t;s.classList.toggle("on",!!on);}
+function syncSend(){sendBtn.disabled=busy||!box.value.trim();}
+function updateVoiceBtn(){const b=$("#voiceToggle");b.setAttribute("aria-pressed",String(voiceOn));b.hidden=!serverCfg.voice;}
+
+/* ---- voice playback ---- */
+async function speak(text){
+  if(!serverCfg.voice) return;
+  try{
+    if(curAudio){curAudio.pause();curAudio=null;}
+    const r=await api("/api/tts",{text,voiceKey:persona().voiceKey});
+    if(!r.ok) return;
+    const blob=await r.blob();const url=URL.createObjectURL(blob);
+    curAudio=new Audio(url);curAudio.onended=()=>URL.revokeObjectURL(url);
+    setStatus("samsarikkunnu…",true);
+    await curAudio.play().catch(()=>{});
+    curAudio.addEventListener("ended",()=>setStatus("online",true),{once:true});
+  }catch(e){}
+}
+
+/* ---- chat ---- */
+async function send(text,voice,proactive){
+  text=(text||"").trim();
+  if(proactive){ if(busy||!msgs.length) return; }
+  else{ if(!text||busy) return; }
+  if(!proactive){const um={role:"user",content:text,voice:!!voice,t:Date.now()};msgs.push(um);thread.append(bubble(um).wrap);}
+  box.value="";autoGrow();busy=true;syncSend();clearProactive();setStatus("type cheyyunnu…",true);
+  const typing=document.createElement("div");typing.className="msg bot typing";
+  typing.innerHTML=`<div class="av sm">${avHTML(persona())}</div><div class="col"><div class="bubble"><i></i><i></i><i></i></div></div>`;thread.append(typing);scrl();
+  try{
+    const r=await api("/api/chat",{personaType:CFG.type,charName:CFG.charName,userName:CFG.userName,messages:msgs.slice(-30),proactive:!!proactive,voice:!!voice});
+    const j=await r.json();typing.remove();
+    if(!r.ok||!j.reply){note(j.error||"Reply vannilla.",true);}
+    else{
+      const am={role:"assistant",content:j.reply,voice:!!voice,t:Date.now()};msgs.push(am);thread.append(bubble(am).wrap);scrl();
+      msgs=msgs.slice(-200);
+      if(voiceOn||voice) speak(j.reply);
+    }
+  }catch(e){typing.remove();if(e.message!=="auth")note("Server-il connect aayilla.",true);}
+  finally{busy=false;syncSend();setStatus("online",true);scheduleProactive();}
+}
+
+/* ---- proactive ---- */
+let idleTimer=null;
+function clearProactive(){clearTimeout(idleTimer);idleTimer=null;}
+function scheduleProactive(){clearProactive();if(!msgs.length||document.hidden)return;idleTimer=setTimeout(()=>send("",false,true),150000);}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)clearProactive();else scheduleProactive();});
+
+/* ---- dictation (browser speech) ---- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,recording=false,recText="";
+function setRec(on){recording=on;micBtn.classList.toggle("rec",on);if(on)setStatus("kelkkunnu… kazhinjal mic amarthu",true);else setStatus("online",true);}
+micBtn.addEventListener("click",()=>{
+  if(!SR){note("Ee browser-il voice message illa (Chrome try cheyyu). Type cheyyaam.",true);return;}
+  if(recording){rec&&rec.stop();return;}
+  recText="";live.textContent="";if(curAudio)curAudio.pause();
+  rec=new SR();rec.lang="ml-IN";rec.interimResults=true;rec.continuous=true;
+  rec.onresult=e=>{let f="",i2="";for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)f+=t;else i2+=t;}if(f)recText=(recText+" "+f).trim();live.textContent=(recText+" "+i2).trim();};
+  rec.onerror=ev=>{if(ev.error==="not-allowed")note("Mic anumathi illa.",true);};
+  rec.onstart=()=>setRec(true);
+  rec.onend=()=>{setRec(false);live.textContent="";const said=recText.trim();recText="";if(said)send(said,true);};
+  try{rec.start();}catch(e){note("Mic start aayilla.",true);}
+});
+
+/* ---- composer ---- */
+function autoGrow(){box.style.height="auto";box.style.height=Math.min(box.scrollHeight,140)+"px";}
+box.addEventListener("input",()=>{autoGrow();syncSend();clearProactive();});
+box.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(box.value,false);}});
+$("#form").addEventListener("submit",e=>{e.preventDefault();send(box.value,false);});
+$("#voiceToggle").addEventListener("click",()=>{voiceOn=!voiceOn;S("voiceOn",voiceOn);if(!voiceOn&&curAudio)curAudio.pause();updateVoiceBtn();});
+
+/* ---- setup ---- */
+let draft={type:null};
+function showSetup(step){$("#setup").hidden=false;$("#step1").hidden=step!==1;$("#step2").hidden=step!==2;}
+function openStep2(type){
+  draft.type=type;const goku=type==="goku";
+  $("#s2title").textContent=goku?"Goku":(type==="girl"?"Ninte girl buddy":"Ninte boy buddy");
+  $("#nameField").hidden=goku;
+  const av=$("#s2av");
+  if(goku){av.innerHTML='<img src="/goku.jpg" alt="">';}
+  else{$("#charName").value=(CFG.type===type&&CFG.charName)?CFG.charName:NAMES[type][0];renderChips();av.textContent=$("#charName").value.slice(0,1).toUpperCase();}
+  $("#userName").value=CFG.userName||"";showSetup(2);
+}
+function renderChips(){const bx=$("#nameChips");bx.innerHTML="";NAMES[draft.type].forEach(n=>{const c=document.createElement("button");c.type="button";c.className="chip";c.textContent=n;c.setAttribute("aria-pressed",String(n===$("#charName").value.trim()));c.onclick=()=>{$("#charName").value=n;$("#s2av").textContent=n.slice(0,1).toUpperCase();renderChips();};bx.append(c);});}
+$("#charName")&&$("#charName").addEventListener("input",()=>{$("#s2av").textContent=($("#charName").value||"?").slice(0,1).toUpperCase();renderChips();});
+$("#pickBoy").onclick=()=>openStep2("girl");
+$("#pickGirl").onclick=()=>openStep2("boy");
+$("#pickGoku").onclick=()=>openStep2("goku");
+$("#back").onclick=()=>showSetup(1);
+$("#start").onclick=async()=>{
+  const changed=CFG.type!==draft.type||(draft.type!=="goku"&&CFG.charName!==($("#charName").value.trim()||NAMES[draft.type][0]));
+  CFG.type=draft.type;
+  if(draft.type!=="goku")CFG.charName=$("#charName").value.trim()||NAMES[draft.type][0];
+  CFG.userName=$("#userName").value.trim();S("cfg",CFG);
+  $("#setup").hidden=true;closeSettings();renderHeader();
+  await loadHistory();
+};
+
+/* ---- settings ---- */
+function openSettings(){renderSwatches();$("#accName").textContent="Login: "+username;$("#scrim").hidden=false;$("#panel").hidden=false;$("#closeSettings").focus();}
+function closeSettings(){$("#scrim").hidden=true;$("#panel").hidden=true;}
+$("#openSettings").onclick=openSettings;$("#closeSettings").onclick=closeSettings;$("#scrim").onclick=closeSettings;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#panel").hidden){e.preventDefault();closeSettings();}});
+$("#changeType").onclick=()=>{closeSettings();showSetup(1);};
+$("#clearBtn").onclick=async()=>{msgs=[];renderAll();closeSettings();try{await api("/api/clear",{personaType:CFG.type});}catch(e){}};
+$("#logoutBtn").onclick=doLogout;
+function renderSwatches(){const w=$("#swatches");w.innerHTML="";ACC.forEach(c=>{const b=document.createElement("button");b.className="swatch";b.style.background=c;b.setAttribute("aria-label","Color");b.setAttribute("aria-pressed",String(c===CFG.accent));b.onclick=()=>{CFG.accent=c;S("cfg",CFG);applyTheme();renderSwatches();};w.append(b);});}
+
+/* ---- login ---- */
+function doLogout(){token=null;S("token",null);location.reload();}
+function lerr(m){$("#loginErr").textContent=m;$("#loginErr").hidden=false;}
+$("#loginBtn").onclick=async()=>{
+  const email=$("#lemail").value.trim();const password=$("#lpass").value;const code=$("#lcode").value;
+  $("#loginErr").hidden=true;
+  if(!email){lerr("Email venam");return;}
+  if(!password){lerr("Password venam");return;}
+  try{
+    const r=await fetch("/api/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password,code})});
+    const j=await r.json();
+    if(!r.ok){lerr(j.error||"Login aayilla");return;}
+    token=j.token;username=j.username;S("token",token);S("username",username);
+    $("#login").hidden=true;afterLogin();
+  }catch(e){lerr("Server-il connect aayilla");}
+};
+["lemail","lpass","lcode"].forEach(id=>$("#"+id).addEventListener("keydown",e=>{if(e.key==="Enter")$("#loginBtn").click();}));
+
+/* ---- history ---- */
+async function loadHistory(){
+  try{
+    const r=await fetch(`/api/history?token=${encodeURIComponent(token)}&persona=${encodeURIComponent(CFG.type)}`);
+    if(r.status===401){doLogout();return;}
+    const j=await r.json();msgs=Array.isArray(j.msgs)?j.msgs:[];
+  }catch(e){msgs=[];}
+  renderAll();scheduleProactive();
+}
+
+/* ---- boot ---- */
+async function afterLogin(){
+  renderHeader();updateVoiceBtn();
+  if(!CFG.type){showSetup(1);} else {await loadHistory();}
+}
+(async()=>{
+  applyTheme();syncSend();
+  try{const r=await fetch("/api/config");serverCfg=await r.json();}catch(e){}
+  updateVoiceBtn();
+  if(serverCfg.needCode)$("#codeField").hidden=false;
+  if(token){afterLogin();} else {$("#login").hidden=false;$("#lemail").focus();}
+})();
+</script>
+</body>
+</html>

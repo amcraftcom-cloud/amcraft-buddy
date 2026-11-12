@@ -1,0 +1,11 @@
+{
+  "name": "amcraft-buddy-vercel",
+  "version": "1.0.0",
+  "description": "AmCraft Buddy on Vercel — serverless functions + Vercel KV.",
+  "author": "Gokul Prakash",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@upstash/redis": "^1.34.3"
+  }
+}
