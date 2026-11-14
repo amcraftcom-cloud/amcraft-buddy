@@ -98,6 +98,6 @@ export default async function handler(req, res) {
     return res.json({ reply });
   } catch (e) {
     console.error(action, e.message);
-    return res.status(502).json({ error: "AI-yil ninnu reply vannilla / server prashnam" });
+    return res.status(502).json({ error: "DBG: " + String(e && e.message || e).slice(0, 220) });
   }
 }
