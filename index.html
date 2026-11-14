@@ -104,6 +104,16 @@ textarea,input[type=text]{border:1px solid var(--line);background:var(--surface)
   </footer>
 </div>
 
+<div id="login" class="screen gut" hidden><div class="wrap">
+  <div class="brand">AmCraft Buddy</div>
+  <h2>Login cheyyu</h2>
+  <p class="small" style="line-height:1.5">Email + password. Aadyam puthiya password set cheyyuka; pinneyum same email + same password adichal mathram login aakum. Same login phone-ilum laptop-ilum chat continue cheyyum.</p>
+  <div class="field"><label for="lemail">Email</label><input type="text" id="lemail" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+  <div class="field"><label for="lpass">Password</label><input type="password" id="lpass" autocomplete="current-password"></div>
+  <button class="btn" id="loginBtn">Aakatte</button>
+  <p class="small" id="loginErr" style="color:var(--danger)" hidden></p>
+</div></div>
+
 <div id="setup" class="screen gut" hidden>
   <div class="wrap" id="step1">
     <div class="brand">AmCraft Buddy</div>
@@ -131,6 +141,7 @@ textarea,input[type=text]{border:1px solid var(--line);background:var(--surface)
     <section class="sec"><h4>Buddy</h4><button class="btn ghost" id="changeType">Buddy maattuka</button></section>
     <section class="sec"><h4>Color</h4><div class="sw" id="swatches"></div></section>
     <section class="sec"><h4>Chat</h4><button class="linkb danger" id="clearBtn">Chat clear cheyyuka</button></section>
+    <section class="sec"><h4>Account</h4><p class="small" id="accName"></p><button class="linkb" id="logoutBtn">Logout</button></section>
     <p class="about">AmCraft Buddy · built by Gokul Prakash</p>
   </div>
 </aside>
@@ -144,7 +155,10 @@ const NAMES={girl:["Ammu","Meera","Diya","Anu","Nila"],boy:["Kannan","Arjun","Ap
 const L=(k,d)=>{try{const v=localStorage.getItem("amb-"+k);return v==null?d:JSON.parse(v)}catch(e){return d}};
 const S=(k,v)=>{try{localStorage.setItem("amb-"+k,JSON.stringify(v))}catch(e){}};
 let CFG=L("cfg",{type:null,charName:"",userName:"",accent:ACC[0]});
-let msgs=L("msgs",[]),busy=false,voiceOn=L("voiceOn",true);
+let token=L("token",null),username=L("username","");
+let msgs=[],busy=false,voiceOn=L("voiceOn",true);
+async function api(body){const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token,...body})});if(r.status===401){doLogout();throw new Error("auth");}return r;}
+function doLogout(){token=null;S("token",null);location.reload();}
 
 function persona(){if(CFG.type==="goku")return{name:"Goku",img:GOKU};if(CFG.type==="girl")return{name:CFG.charName||"Ammu",img:null};return{name:CFG.charName||"Kannan",img:null};}
 function avHTML(p){return p.img?`<img src="${p.img}" alt="">`:esc((p.name||"?").slice(0,1).toUpperCase());}
@@ -188,12 +202,11 @@ async function send(text,voice,proactive){
   box.value="";autoGrow();busy=true;syncSend();clearProactive();setStatus("type cheyyunnu…",true);
   const typing=document.createElement("div");typing.className="msg bot typing";typing.innerHTML=`<div class="av sm">${avHTML(persona())}</div><div class="col"><div class="bubble"><i></i><i></i><i></i></div></div>`;thread.append(typing);scrl();
   try{
-    const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({personaType:CFG.type,charName:CFG.charName,userName:CFG.userName,messages:msgs.slice(-30),proactive:!!proactive})});
+    const r=await api({action:"chat",personaType:CFG.type,charName:CFG.charName,userName:CFG.userName,messages:msgs.slice(-30),proactive:!!proactive,voice:!!voice});
     const j=await r.json().catch(()=>({}));typing.remove();
     if(!r.ok||!j.reply){note(j.error||"Reply vannilla.",true);}
-    else{const am={role:"assistant",content:j.reply,voice:!!voice,t:Date.now()};msgs.push(am);S("msgs",msgs.slice(-200));thread.append(bubble(am).wrap);scrl();if(voiceOn||voice)speak(j.reply);}
-    S("msgs",msgs.slice(-200));
-  }catch(e){typing.remove();note("Server-il connect aayilla.",true);}
+    else{const am={role:"assistant",content:j.reply,voice:!!voice,t:Date.now()};msgs.push(am);msgs=msgs.slice(-200);thread.append(bubble(am).wrap);scrl();if(voiceOn||voice)speak(j.reply);}
+  }catch(e){typing.remove();if(e.message!=="auth")note("Server-il connect aayilla.",true);}
   finally{busy=false;syncSend();setStatus("online",true);scheduleProactive();}
 }
 
@@ -229,20 +242,25 @@ function renderChips(){const bx=$("#nameChips");bx.innerHTML="";NAMES[draft.type
 $("#charName").addEventListener("input",()=>{$("#s2av").textContent=($("#charName").value||"?").slice(0,1).toUpperCase();renderChips();});
 $("#pickBoy").onclick=()=>openStep2("girl");$("#pickGirl").onclick=()=>openStep2("boy");$("#pickGoku").onclick=()=>openStep2("goku");
 $("#back").onclick=()=>showSetup(1);
-$("#start").onclick=()=>{const changed=CFG.type!==draft.type||(draft.type!=="goku"&&CFG.charName!==($("#charName").value.trim()||NAMES[draft.type][0]));CFG.type=draft.type;if(draft.type!=="goku")CFG.charName=$("#charName").value.trim()||NAMES[draft.type][0];CFG.userName=$("#userName").value.trim();S("cfg",CFG);if(changed){msgs=[];S("msgs",msgs);}$("#setup").hidden=true;closeSettings();renderHeader();renderAll();box.focus();};
+$("#start").onclick=async()=>{CFG.type=draft.type;if(draft.type!=="goku")CFG.charName=$("#charName").value.trim()||NAMES[draft.type][0];CFG.userName=$("#userName").value.trim();S("cfg",CFG);$("#setup").hidden=true;closeSettings();renderHeader();await loadHistory();box.focus();};
+async function loadHistory(){try{const r=await api({action:"history",personaType:CFG.type});const j=await r.json().catch(()=>({}));msgs=Array.isArray(j.msgs)?j.msgs:[];}catch(e){msgs=[];}renderAll();scheduleProactive();}
+async function afterLogin(){renderHeader();updateVoiceBtn();if(!CFG.type){showSetup(1);}else{await loadHistory();}}
+$("#loginBtn").onclick=async()=>{const email=$("#lemail").value.trim();const password=$("#lpass").value;$("#loginErr").hidden=true;if(!email){$("#loginErr").textContent="Email venam";$("#loginErr").hidden=false;return;}if(!password){$("#loginErr").textContent="Password venam";$("#loginErr").hidden=false;return;}try{const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"login",email,password})});const j=await r.json().catch(()=>({}));if(!r.ok){$("#loginErr").textContent=j.error||"Login aayilla";$("#loginErr").hidden=false;return;}token=j.token;username=j.username;S("token",token);S("username",username);$("#login").hidden=true;afterLogin();}catch(e){$("#loginErr").textContent="Server-il connect aayilla";$("#loginErr").hidden=false;}};
+["lemail","lpass"].forEach(id=>$("#"+id).addEventListener("keydown",e=>{if(e.key==="Enter")$("#loginBtn").click();}));
 
-function openSettings(){renderSwatches();$("#scrim").hidden=false;$("#panel").hidden=false;$("#closeSettings").focus();}
+function openSettings(){renderSwatches();$("#accName").textContent="Login: "+username;$("#scrim").hidden=false;$("#panel").hidden=false;$("#closeSettings").focus();}
 function closeSettings(){$("#scrim").hidden=true;$("#panel").hidden=true;}
 $("#openSettings").onclick=openSettings;$("#closeSettings").onclick=closeSettings;$("#scrim").onclick=closeSettings;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#panel").hidden){e.preventDefault();closeSettings();}});
 $("#changeType").onclick=()=>{closeSettings();showSetup(1);};
-$("#clearBtn").onclick=()=>{msgs=[];S("msgs",msgs);renderAll();closeSettings();};
+$("#clearBtn").onclick=async()=>{msgs=[];renderAll();closeSettings();try{await api({action:"clear",personaType:CFG.type});}catch(e){}};
+$("#logoutBtn").onclick=doLogout;
 function renderSwatches(){const w=$("#swatches");w.innerHTML="";ACC.forEach(c=>{const b=document.createElement("button");b.className="swatch";b.style.background=c;b.setAttribute("aria-label","Color");b.setAttribute("aria-pressed",String(c===CFG.accent));b.onclick=()=>{CFG.accent=c;S("cfg",CFG);applyTheme();renderSwatches();};w.append(b);});}
 
 applyTheme();updateVoiceBtn();syncSend();
 if("speechSynthesis" in window){speechSynthesis.onvoiceschanged=()=>{};}
 renderHeader();
-if(!CFG.type){showSetup(1);}else{renderAll();scheduleProactive();}
+if(token){afterLogin();}else{$("#login").hidden=false;setTimeout(()=>{try{$("#lemail").focus();}catch(e){}},50);}
 </script>
 </body>
 </html>
