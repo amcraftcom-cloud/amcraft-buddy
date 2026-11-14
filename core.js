@@ -74,7 +74,27 @@ How to talk:
 
 export async function askAI(system, messages) {
   if (AI_PROVIDER === "openai") return askOpenAI(system, messages);
+  if (AI_PROVIDER === "gemini") return askGemini(system, messages);
   return askAnthropic(system, messages);
+}
+async function askGemini(system, messages) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY is not set");
+  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const contents = messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: String(m.content || "") }] }));
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents,
+      generationConfig: { maxOutputTokens: 400 }
+    })
+  });
+  if (!r.ok) throw new Error("Gemini " + r.status + " " + (await r.text()).slice(0, 300));
+  const j = await r.json();
+  const parts = j.candidates?.[0]?.content?.parts || [];
+  return parts.map(p => p.text || "").join("").trim();
 }
 async function askAnthropic(system, messages) {
   const key = process.env.ANTHROPIC_API_KEY;
