@@ -42,9 +42,11 @@ async function askGemini(system, messages, proactive) {
   if (proactive) contents.push({ role: "user", parts: [{ text: "(The user has gone quiet. As their buddy, send ONE short spontaneous message now — check in, miss them, or tease gently. Only the message text.)" }] });
   if (!contents.length) throw new Error("empty");
   const body = JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents, generationConfig: { maxOutputTokens: 500 } });
-  const models = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-001", "gemini-2.5-flash-lite", "gemini-1.5-flash"].filter(Boolean);
+  const models = [process.env.GEMINI_MODEL, "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-pro-latest"].filter(Boolean);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
   let lastErr = "no model";
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let round = 0; round < 4; round++) {
+    let busy = false;
     for (const model of models) {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
         method: "POST", headers: { "content-type": "application/json" }, body
@@ -57,9 +59,10 @@ async function askGemini(system, messages, proactive) {
         continue;
       }
       lastErr = "Gemini " + model + " " + r.status + " " + (await r.text()).slice(0, 100);
-      if (r.status === 401 || r.status === 403) throw new Error(lastErr); // key invalid — other models won't help
-      // 404/400/429/500/503 etc. — just try the next model
+      if (r.status === 401 || r.status === 403) throw new Error(lastErr); // key invalid
+      if (r.status === 503 || r.status === 429 || r.status === 500) busy = true; // temporary — worth retrying
     }
+    if (busy && round < 3) await sleep(900); else break;
   }
   throw new Error(lastErr);
 }
