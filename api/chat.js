@@ -42,18 +42,24 @@ async function askGemini(system, messages, proactive) {
   if (proactive) contents.push({ role: "user", parts: [{ text: "(The user has gone quiet. As their buddy, send ONE short spontaneous message now — check in, miss them, or tease gently. Only the message text.)" }] });
   if (!contents.length) throw new Error("empty");
   const body = JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents, generationConfig: { maxOutputTokens: 500 } });
-  const models = [process.env.GEMINI_MODEL, "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash-001", "gemini-1.5-flash"].filter(Boolean);
+  const models = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-001", "gemini-2.5-flash-lite", "gemini-1.5-flash"].filter(Boolean);
   let lastErr = "no model";
-  for (const model of models) {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
-      method: "POST", headers: { "content-type": "application/json" }, body
-    });
-    if (r.ok) {
-      const j = await r.json();
-      return (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const model of models) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+        method: "POST", headers: { "content-type": "application/json" }, body
+      });
+      if (r.ok) {
+        const j = await r.json();
+        const text = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+        if (text) return text;
+        lastErr = "Gemini " + model + " empty reply";
+        continue;
+      }
+      lastErr = "Gemini " + model + " " + r.status + " " + (await r.text()).slice(0, 100);
+      if (r.status === 401 || r.status === 403) throw new Error(lastErr); // key invalid — other models won't help
+      // 404/400/429/500/503 etc. — just try the next model
     }
-    lastErr = "Gemini " + model + " " + r.status + " " + (await r.text()).slice(0, 120);
-    if (r.status !== 404 && r.status !== 400) break; // key/quota error — stop trying other models
   }
   throw new Error(lastErr);
 }
