@@ -37,18 +37,25 @@ You are chatting as a friend in a messaging app. Keep it friendly and respectful
 async function askGemini(system, messages, proactive) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
   const contents = messages.slice(-30).map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: String(m.content || "").slice(0, 4000) }] }));
   while (contents.length && contents[0].role !== "user") contents.shift();
   if (proactive) contents.push({ role: "user", parts: [{ text: "(The user has gone quiet. As their buddy, send ONE short spontaneous message now — check in, miss them, or tease gently. Only the message text.)" }] });
   if (!contents.length) throw new Error("empty");
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents, generationConfig: { maxOutputTokens: 500 } })
-  });
-  if (!r.ok) throw new Error("Gemini " + r.status + " " + (await r.text()).slice(0, 200));
-  const j = await r.json();
-  return (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+  const body = JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents, generationConfig: { maxOutputTokens: 500 } });
+  const models = [process.env.GEMINI_MODEL, "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash-001", "gemini-1.5-flash"].filter(Boolean);
+  let lastErr = "no model";
+  for (const model of models) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+      method: "POST", headers: { "content-type": "application/json" }, body
+    });
+    if (r.ok) {
+      const j = await r.json();
+      return (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+    }
+    lastErr = "Gemini " + model + " " + r.status + " " + (await r.text()).slice(0, 120);
+    if (r.status !== 404 && r.status !== 400) break; // key/quota error — stop trying other models
+  }
+  throw new Error(lastErr);
 }
 
 export default async function handler(req, res) {
